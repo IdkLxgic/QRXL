@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- jsQR for decoding QR codes from image/camera -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,6 +19,7 @@
       --ink:     #0f0e0a;
       --accent:  #ff3c00;
       --accent2: #0047ff;
+      --accent3: #00aa44;
       --card:    #ffffff;
       --border:  #0f0e0a;
       --mono:    'IBM Plex Mono', monospace;
@@ -31,14 +34,12 @@
       color: var(--ink);
       font-family: var(--mono);
       min-height: 100vh;
-      /* grid paper background */
       background-image:
         linear-gradient(rgba(15,14,10,0.06) 1px, transparent 1px),
         linear-gradient(90deg, rgba(15,14,10,0.06) 1px, transparent 1px);
       background-size: 32px 32px;
     }
 
-    /* ── LAYOUT ── */
     .page {
       min-height: 100vh;
       display: flex;
@@ -52,15 +53,13 @@
     .header {
       width: 100%;
       max-width: 640px;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
       border-bottom: var(--bw) solid var(--ink);
       padding-bottom: 16px;
     }
-
-    .logo-block {}
 
     .logo {
       font-family: var(--display);
@@ -70,19 +69,15 @@
       color: var(--ink);
       display: block;
     }
-
     .logo span { color: var(--accent); }
-
     .logo-sub {
       font-size: 0.65rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--ink);
       opacity: 0.5;
       margin-top: 4px;
       display: block;
     }
-
     .header-tag {
       font-size: 0.65rem;
       letter-spacing: 0.12em;
@@ -92,20 +87,53 @@
       line-height: 1.6;
     }
 
-    /* ── MAIN CARD ── */
-    .card {
+    /* ── TAB SWITCHER ── */
+    .tabs {
       width: 100%;
       max-width: 640px;
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      border: var(--bw) solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 8px;
+      font-family: var(--display);
+      font-size: 1.1rem;
+      letter-spacing: 0.06em;
+      text-align: center;
+      cursor: pointer;
+      background: var(--bg);
+      color: var(--ink);
+      border: none;
+      border-right: var(--bw) solid var(--ink);
+      transition: background 0.12s, color 0.12s;
+      user-select: none;
+    }
+    .tab:last-child { border-right: none; }
+    .tab:hover { background: rgba(15,14,10,0.08); }
+    .tab.active { background: var(--ink); color: var(--bg); }
+
+    /* ── PANELS ── */
+    .panel { display: none; width: 100%; max-width: 640px; flex-direction: column; gap: 0; }
+    .panel.active { display: flex; }
+
+    /* ── CARD ── */
+    .card {
+      width: 100%;
       background: var(--card);
       border: var(--bw) solid var(--ink);
       box-shadow: 6px 6px 0 var(--ink);
       padding: 32px;
       margin-bottom: 24px;
-      animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(20px); }
+      from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
@@ -118,12 +146,8 @@
       display: block;
     }
 
-    /* ── INPUT ── */
-    .input-row {
-      display: flex;
-      gap: 0;
-      margin-bottom: 24px;
-    }
+    /* ── GENERATE PANEL ── */
+    .input-row { display: flex; gap: 0; margin-bottom: 24px; }
 
     #url-input {
       flex: 1;
@@ -137,7 +161,6 @@
       outline: none;
       transition: background 0.15s;
     }
-
     #url-input::placeholder { opacity: 0.35; }
     #url-input:focus { background: #fff; }
 
@@ -153,21 +176,17 @@
       transition: background 0.1s, transform 0.1s;
       white-space: nowrap;
     }
-
     #gen-btn:hover  { background: #cc2f00; }
-    #gen-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+    #gen-btn:active { transform: translate(2px,2px); }
 
-    /* ── OPTIONS ROW ── */
     .options {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
       margin-bottom: 28px;
     }
-
     .opt-group { display: flex; flex-direction: column; gap: 6px; }
     .opt-label { font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.45; }
-
     .opt-group select,
     .opt-group input[type=color] {
       background: var(--bg);
@@ -182,24 +201,16 @@
       -webkit-appearance: none;
       width: 100%;
     }
+    .opt-group input[type=color] { height: 40px; padding: 4px 6px; }
 
-    .opt-group input[type=color] {
-      height: 40px;
-      padding: 4px 6px;
-      cursor: pointer;
-    }
-
-    /* ── QR OUTPUT ── */
+    /* QR OUTPUT */
     .qr-section {
       display: none;
       flex-direction: column;
       align-items: center;
-      gap: 0;
       animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
-
     .qr-section.visible { display: flex; }
-
     @keyframes popIn {
       from { opacity: 0; transform: scale(0.88); }
       to   { opacity: 1; transform: scale(1); }
@@ -212,14 +223,7 @@
       background: #fff;
       position: relative;
     }
-
-    .qr-corner {
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      background: var(--accent);
-    }
-
+    .qr-corner { position: absolute; width: 16px; height: 16px; background: var(--accent); }
     .qr-corner.tl { top: -3px; left: -3px; }
     .qr-corner.tr { top: -3px; right: -3px; }
     .qr-corner.bl { bottom: -3px; left: -3px; }
@@ -229,12 +233,7 @@
     #qr-output canvas { display: block !important; }
     #qr-output img { display: none !important; }
 
-    .qr-meta {
-      margin-top: 16px;
-      text-align: center;
-      width: 100%;
-    }
-
+    .qr-meta { margin-top: 16px; text-align: center; width: 100%; }
     .qr-url-display {
       font-size: 0.7rem;
       opacity: 0.45;
@@ -243,46 +242,6 @@
       margin: 0 auto 16px;
       line-height: 1.5;
     }
-
-    /* ── DOWNLOAD BUTTONS ── */
-    .dl-row {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 4px;
-    }
-
-    .btn-dl {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      border: var(--bw) solid var(--ink);
-      padding: 10px 18px;
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      cursor: pointer;
-      background: var(--bg);
-      color: var(--ink);
-      transition: background 0.12s, transform 0.1s, box-shadow 0.1s;
-      box-shadow: 3px 3px 0 var(--ink);
-      text-decoration: none;
-    }
-
-    .btn-dl:hover  { background: var(--ink); color: var(--bg); }
-    .btn-dl:active { transform: translate(2px, 2px); box-shadow: none; }
-
-    .btn-dl.primary {
-      background: var(--accent2);
-      color: #fff;
-      box-shadow: 3px 3px 0 var(--ink);
-    }
-
-    .btn-dl.primary:hover { background: #0035cc; color: #fff; }
-
-    /* ── SIZE DISPLAY ── */
     .size-badge {
       display: inline-block;
       font-size: 0.58rem;
@@ -294,6 +253,188 @@
       margin-bottom: 12px;
     }
 
+    .dl-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+    .btn-dl {
+      display: inline-flex; align-items: center; gap: 7px;
+      border: var(--bw) solid var(--ink);
+      padding: 10px 18px;
+      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em;
+      text-transform: uppercase; cursor: pointer; background: var(--bg); color: var(--ink);
+      transition: background 0.12s, transform 0.1s, box-shadow 0.1s;
+      box-shadow: 3px 3px 0 var(--ink); text-decoration: none;
+    }
+    .btn-dl:hover  { background: var(--ink); color: var(--bg); }
+    .btn-dl:active { transform: translate(2px,2px); box-shadow: none; }
+    .btn-dl.primary { background: var(--accent2); color: #fff; }
+    .btn-dl.primary:hover { background: #0035cc; color: #fff; }
+
+    /* ── SCAN PANELS ── */
+    .scan-drop-zone {
+      border: var(--bw) dashed var(--ink);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: background 0.15s;
+      position: relative;
+    }
+    .scan-drop-zone:hover, .scan-drop-zone.dragover { background: rgba(15,14,10,0.05); }
+    .scan-drop-zone input[type=file] {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      opacity: 0; cursor: pointer;
+    }
+    .scan-drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .scan-drop-title {
+      font-family: var(--display);
+      font-size: 1.6rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .scan-drop-sub { font-size: 0.72rem; opacity: 0.4; letter-spacing: 0.1em; text-transform: uppercase; }
+
+    /* SCAN RESULT */
+    .scan-result {
+      display: none;
+      border: var(--bw) solid var(--ink);
+      padding: 20px;
+      background: var(--bg);
+      animation: slideIn 0.3s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .scan-result.visible { display: block; }
+    .scan-result-label {
+      font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase;
+      opacity: 0.4; margin-bottom: 8px; display: block;
+    }
+    .scan-result-text {
+      font-size: 0.9rem;
+      word-break: break-all;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .scan-result-text a { color: var(--accent2); text-decoration: underline; }
+
+    .scan-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-scan-action {
+      display: inline-flex; align-items: center; gap: 6px;
+      border: var(--bw) solid var(--ink);
+      padding: 8px 14px;
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em;
+      text-transform: uppercase; cursor: pointer; background: var(--card); color: var(--ink);
+      transition: background 0.12s; box-shadow: 2px 2px 0 var(--ink);
+    }
+    .btn-scan-action:hover { background: var(--ink); color: var(--bg); }
+    .btn-scan-action.go { background: var(--accent2); color: #fff; border-color: var(--ink); }
+    .btn-scan-action.go:hover { background: #0035cc; }
+
+    /* ── CAMERA PANEL ── */
+    .camera-wrap {
+      position: relative;
+      background: #000;
+      border: var(--bw) solid var(--ink);
+      box-shadow: 5px 5px 0 var(--ink);
+      overflow: hidden;
+      margin-bottom: 16px;
+      aspect-ratio: 4/3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #camera-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .camera-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .camera-reticle {
+      width: 200px;
+      height: 200px;
+      position: relative;
+    }
+    .camera-reticle::before, .camera-reticle::after {
+      content: '';
+      position: absolute;
+      width: 30px; height: 30px;
+      border-color: var(--accent);
+      border-style: solid;
+    }
+    .camera-reticle::before { top: 0; left: 0; border-width: 3px 0 0 3px; }
+    .camera-reticle::after  { bottom: 0; right: 0; border-width: 0 3px 3px 0; }
+    .reticle-tr, .reticle-bl {
+      position: absolute;
+      width: 30px; height: 30px;
+      border-color: var(--accent);
+      border-style: solid;
+    }
+    .reticle-tr { top: 0; right: 0; border-width: 3px 3px 0 0; }
+    .reticle-bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; }
+
+    /* scanning line animation */
+    .scan-line {
+      position: absolute;
+      left: 10px; right: 10px;
+      height: 2px;
+      background: var(--accent);
+      opacity: 0.8;
+      animation: scanLine 2s ease-in-out infinite;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    @keyframes scanLine {
+      0%   { top: 10px; }
+      50%  { top: calc(100% - 12px); }
+      100% { top: 10px; }
+    }
+
+    .camera-status {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      white-space: nowrap;
+    }
+
+    .camera-idle {
+      color: rgba(255,255,255,0.4);
+      font-family: var(--display);
+      font-size: 1.3rem;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .cam-btn-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .btn-cam {
+      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border: var(--bw) solid var(--ink);
+      padding: 12px 16px;
+      font-family: var(--display); font-size: 1.1rem; letter-spacing: 0.05em;
+      cursor: pointer; background: var(--card); color: var(--ink);
+      transition: all 0.12s; box-shadow: 3px 3px 0 var(--ink);
+    }
+    .btn-cam:hover { background: var(--ink); color: var(--bg); }
+    .btn-cam:active { transform: translate(2px,2px); box-shadow: none; }
+    .btn-cam.active { background: var(--accent); color: #fff; border-color: var(--ink); }
+    .btn-cam.active:hover { background: #cc2f00; }
+    .btn-cam svg { width: 18px; height: 18px; }
+
     /* ── HISTORY ── */
     .history-card {
       width: 100%;
@@ -303,76 +444,31 @@
       box-shadow: 6px 6px 0 var(--ink);
       padding: 24px 32px;
       display: none;
-      animation: slideIn 0.4s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+      margin-top: 0;
     }
-
     .history-card.visible { display: block; }
 
     .history-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      border-bottom: 1px solid rgba(15,14,10,0.12);
-      padding-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; border-bottom: 1px solid rgba(15,14,10,0.12); padding-bottom: 10px;
     }
-
-    .history-title {
-      font-family: var(--display);
-      font-size: 1.5rem;
-      letter-spacing: 0.05em;
-    }
-
+    .history-title { font-family: var(--display); font-size: 1.5rem; letter-spacing: 0.05em; }
     .btn-clear {
-      font-size: 0.6rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      background: none;
-      border: 1px solid rgba(15,14,10,0.25);
-      padding: 4px 10px;
-      cursor: pointer;
-      font-family: var(--mono);
-      color: var(--ink);
-      opacity: 0.5;
-      transition: opacity 0.15s;
+      font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+      background: none; border: 1px solid rgba(15,14,10,0.25); padding: 4px 10px;
+      cursor: pointer; font-family: var(--mono); color: var(--ink); opacity: 0.5; transition: opacity 0.15s;
     }
-
     .btn-clear:hover { opacity: 1; }
-
     .history-list { display: flex; flex-direction: column; gap: 8px; }
-
     .history-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 10px;
-      border: 1px solid rgba(15,14,10,0.1);
-      cursor: pointer;
-      transition: background 0.12s;
-      font-size: 0.75rem;
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 10px; border: 1px solid rgba(15,14,10,0.1);
+      cursor: pointer; transition: background 0.12s; font-size: 0.75rem;
     }
-
     .history-item:hover { background: var(--bg); }
-
-    .history-dot {
-      width: 8px; height: 8px;
-      background: var(--accent);
-      flex-shrink: 0;
-    }
-
-    .history-url {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      opacity: 0.7;
-    }
-
-    .history-time {
-      font-size: 0.6rem;
-      opacity: 0.35;
-      white-space: nowrap;
-    }
+    .history-dot { width: 8px; height: 8px; background: var(--accent); flex-shrink: 0; }
+    .history-url { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.7; }
+    .history-time { font-size: 0.6rem; opacity: 0.35; white-space: nowrap; }
 
     /* ── FOOTER ── */
     .footer {
@@ -393,29 +489,22 @@
     /* ── TOAST ── */
     #toast {
       position: fixed;
-      bottom: 24px;
-      left: 50%;
+      bottom: 24px; left: 50%;
       transform: translateX(-50%) translateY(10px);
-      background: var(--ink);
-      color: var(--bg);
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 10px 18px;
-      opacity: 0;
-      transition: all 0.2s;
-      z-index: 999;
-      pointer-events: none;
+      background: var(--ink); color: var(--bg);
+      font-family: var(--mono); font-size: 0.72rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 10px 18px; opacity: 0;
+      transition: all 0.2s; z-index: 999; pointer-events: none;
       border: 2px solid var(--accent);
     }
-
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     @media (max-width: 500px) {
       .logo { font-size: 3.5rem; }
       .options { grid-template-columns: 1fr 1fr; }
       .card { padding: 20px; }
+      .tab { font-size: 0.85rem; padding: 10px 4px; }
     }
   </style>
 </head>
@@ -426,102 +515,181 @@
   <div class="header">
     <div class="logo-block">
       <span class="logo">QR<span>XL</span></span>
-      <span class="logo-sub">QR Code Generator</span>
+      <span class="logo-sub">QR Code Generator & Scanner</span>
     </div>
-    <div class="header-tag">
-      Free · No signup
+    <div class="header-tag">Free · No signup<br>Works offline</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" data-tab="generate">Generate</button>
+    <button class="tab" data-tab="scan-image">Scan Image</button>
+    <button class="tab" data-tab="scan-camera">Scan Camera</button>
+  </div>
+
+  <!-- ═══════════════ GENERATE PANEL ═══════════════ -->
+  <div class="panel active" id="panel-generate">
+    <div class="card">
+      <span class="card-label">Enter URL or text</span>
+      <div class="input-row">
+        <input type="text" id="url-input" placeholder="https://example.com or any text…" autocomplete="off" spellcheck="false" />
+        <button id="gen-btn">GENERATE</button>
+      </div>
+      <div class="options">
+        <div class="opt-group">
+          <span class="opt-label">Size</span>
+          <select id="size-select">
+            <option value="128">128 × 128</option>
+            <option value="200">200 × 200</option>
+            <option value="300" selected>300 × 300</option>
+            <option value="512">512 × 512</option>
+            <option value="1024">1024 × 1024</option>
+          </select>
+        </div>
+        <div class="opt-group">
+          <span class="opt-label">Dark color</span>
+          <input type="color" id="color-dark" value="#0f0e0a" />
+        </div>
+        <div class="opt-group">
+          <span class="opt-label">Light color</span>
+          <input type="color" id="color-light" value="#ffffff" />
+        </div>
+      </div>
+
+      <div class="qr-section" id="qr-section">
+        <div class="qr-frame">
+          <div class="qr-corner tl"></div><div class="qr-corner tr"></div>
+          <div class="qr-corner bl"></div><div class="qr-corner br"></div>
+          <div id="qr-output"></div>
+        </div>
+        <div class="qr-meta">
+          <div class="size-badge" id="size-badge">300 × 300 px</div>
+          <div class="qr-url-display" id="qr-url-display"></div>
+          <div class="dl-row">
+            <button class="btn-dl primary" id="dl-png-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PNG
+            </button>
+            <button class="btn-dl" id="dl-svg-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download SVG
+            </button>
+            <button class="btn-dl" id="copy-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy Image
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="history-card" id="history-card">
+      <div class="history-header">
+        <span class="history-title">RECENT</span>
+        <button class="btn-clear" id="clear-btn">Clear all</button>
+      </div>
+      <div class="history-list" id="history-list"></div>
     </div>
   </div>
 
-  <!-- MAIN CARD -->
-  <div class="card">
-    <span class="card-label">Enter URL or text</span>
+  <!-- ═══════════════ SCAN IMAGE PANEL ═══════════════ -->
+  <div class="panel" id="panel-scan-image">
+    <div class="card">
+      <span class="card-label">Scan QR from image file</span>
 
-    <div class="input-row">
-      <input
-        type="text"
-        id="url-input"
-        placeholder="https://example.com or any text…"
-        autocomplete="off"
-        spellcheck="false"
-      />
-      <button id="gen-btn">GENERATE</button>
-    </div>
-
-    <div class="options">
-      <div class="opt-group">
-        <span class="opt-label">Size</span>
-        <select id="size-select">
-          <option value="128">128 × 128</option>
-          <option value="200">200 × 200</option>
-          <option value="300" selected>300 × 300</option>
-          <option value="512">512 × 512</option>
-          <option value="1024">1024 × 1024</option>
-        </select>
-      </div>
-      <div class="opt-group">
-        <span class="opt-label">Dark color</span>
-        <input type="color" id="color-dark" value="#0f0e0a" />
-      </div>
-      <div class="opt-group">
-        <span class="opt-label">Light color</span>
-        <input type="color" id="color-light" value="#ffffff" />
-      </div>
-    </div>
-
-    <!-- QR OUTPUT -->
-    <div class="qr-section" id="qr-section">
-      <div class="qr-frame">
-        <div class="qr-corner tl"></div>
-        <div class="qr-corner tr"></div>
-        <div class="qr-corner bl"></div>
-        <div class="qr-corner br"></div>
-        <div id="qr-output"></div>
+      <div class="scan-drop-zone" id="img-drop-zone">
+        <input type="file" id="img-scan-input" accept="image/*" />
+        <span class="scan-drop-icon">🖼️</span>
+        <div class="scan-drop-title">DROP IMAGE HERE</div>
+        <div class="scan-drop-sub">or click to browse — PNG, JPG, WEBP</div>
       </div>
 
-      <div class="qr-meta">
-        <div class="size-badge" id="size-badge">300 × 300 px</div>
-        <div class="qr-url-display" id="qr-url-display"></div>
-        <div class="dl-row">
-          <button class="btn-dl primary" id="dl-png-btn">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download PNG
-          </button>
-          <button class="btn-dl" id="dl-svg-btn">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download SVG
-          </button>
-          <button class="btn-dl" id="copy-btn">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            Copy Image
-          </button>
+      <div class="scan-result" id="img-scan-result">
+        <span class="scan-result-label">Decoded content</span>
+        <div class="scan-result-text" id="img-scan-text"></div>
+        <div class="scan-actions">
+          <button class="btn-scan-action go" id="img-open-btn">Open URL</button>
+          <button class="btn-scan-action" id="img-copy-btn">Copy Text</button>
+          <button class="btn-scan-action" id="img-make-btn">Make QR from this</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- HISTORY -->
-  <div class="history-card" id="history-card">
-    <div class="history-header">
-      <span class="history-title">RECENT</span>
-      <button class="btn-clear" id="clear-btn">Clear all</button>
+  <!-- ═══════════════ SCAN CAMERA PANEL ═══════════════ -->
+  <div class="panel" id="panel-scan-camera">
+    <div class="card">
+      <span class="card-label">Scan QR from camera</span>
+
+      <div class="cam-btn-row">
+        <button class="btn-cam" id="cam-start-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          Start Camera
+        </button>
+        <button class="btn-cam" id="cam-stop-btn" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"/></svg>
+          Stop Camera
+        </button>
+        <button class="btn-cam" id="cam-flip-btn" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.57"/></svg>
+          Flip
+        </button>
+      </div>
+
+      <div class="camera-wrap" id="camera-wrap">
+        <div class="camera-idle" id="camera-idle">Press "Start Camera" to begin scanning</div>
+        <video id="camera-video" autoplay muted playsinline style="display:none"></video>
+        <div class="camera-overlay" id="camera-overlay" style="display:none">
+          <div class="camera-reticle">
+            <div class="reticle-tr"></div>
+            <div class="reticle-bl"></div>
+            <div class="scan-line"></div>
+          </div>
+        </div>
+        <div class="camera-status" id="camera-status" style="display:none">Scanning…</div>
+      </div>
+
+      <div class="scan-result" id="cam-scan-result">
+        <span class="scan-result-label">Decoded content</span>
+        <div class="scan-result-text" id="cam-scan-text"></div>
+        <div class="scan-actions">
+          <button class="btn-scan-action go" id="cam-open-btn">Open URL</button>
+          <button class="btn-scan-action" id="cam-copy-btn">Copy Text</button>
+          <button class="btn-scan-action" id="cam-make-btn">Make QR from this</button>
+        </div>
+      </div>
     </div>
-    <div class="history-list" id="history-list"></div>
   </div>
 
   <div class="footer">
-    <span>QRXL... THE Free QR Generator</span>
-    <span>No data is sent anywhere, this is purely open source!</span>
+    <span>QRXL — The Free QR Generator</span>
+    <span>No data sent anywhere</span>
   </div>
-
 </div>
 
 <div id="toast"></div>
+<!-- hidden canvas for camera scanning -->
+<canvas id="scan-canvas" style="display:none"></canvas>
 
 <script>
 (function () {
   'use strict';
 
+  // ── Tab switching ──
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      // Stop camera if leaving camera tab
+      if (tab.dataset.tab !== 'scan-camera') stopCamera();
+    });
+  });
+
+  // ════════════════════════════════════════
+  // GENERATE
+  // ════════════════════════════════════════
   const urlInput   = document.getElementById('url-input');
   const genBtn     = document.getElementById('gen-btn');
   const qrSection  = document.getElementById('qr-section');
@@ -537,67 +705,41 @@
   const histCard   = document.getElementById('history-card');
   const histList   = document.getElementById('history-list');
   const clearBtn   = document.getElementById('clear-btn');
-  const toast      = document.getElementById('toast');
 
-  let history = [];
-  let currentQR = null;
+  let qrHistory = [];
   let currentText = '';
 
-  // Load history
-  try { history = JSON.parse(localStorage.getItem('qrxl_history') || '[]'); } catch(e) {}
+  try { qrHistory = JSON.parse(localStorage.getItem('qrxl_history') || '[]'); } catch(e) {}
   renderHistory();
 
-  // ── Generate on button click ──
-  genBtn.addEventListener('click', generate);
-  urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') generate(); });
-
-  // ── Regenerate on option change ──
+  genBtn.addEventListener('click', () => generate(false));
+  urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') generate(false); });
   sizeSelect.addEventListener('change', () => { if (currentText) generate(true); });
   colorDark.addEventListener('input',   () => { if (currentText) generate(true); });
   colorLight.addEventListener('input',  () => { if (currentText) generate(true); });
 
   function generate(silent) {
     const text = urlInput.value.trim();
-    if (!text) {
-      urlInput.focus();
-      showToast('Enter a URL or text first');
-      return;
-    }
-
+    if (!text) { urlInput.focus(); showToast('Enter a URL or text first'); return; }
     currentText = text;
-    const size  = parseInt(sizeSelect.value, 10);
-
-    // Clear previous
+    const size = parseInt(sizeSelect.value, 10);
     qrOutput.innerHTML = '';
-
-    // Generate with qrcodejs
     try {
-      currentQR = new QRCode(qrOutput, {
-        text:          text,
-        width:         size,
-        height:        size,
-        colorDark:     colorDark.value,
-        colorLight:    colorLight.value,
-        correctLevel:  QRCode.CorrectLevel.H,
+      new QRCode(qrOutput, {
+        text, width: size, height: size,
+        colorDark: colorDark.value,
+        colorLight: colorLight.value,
+        correctLevel: QRCode.CorrectLevel.H,
       });
-    } catch (e) {
-      showToast('Could not generate QR — text too long?');
-      return;
-    }
+    } catch(e) { showToast('Could not generate QR — text too long?'); return; }
 
-    qrUrlDisp.textContent = text.length > 60 ? text.slice(0, 57) + '…' : text;
+    qrUrlDisp.textContent = text.length > 60 ? text.slice(0,57)+'…' : text;
     sizeBadge.textContent = size + ' × ' + size + ' px';
-
     qrSection.classList.add('visible');
 
-    // Save to history (silent = re-render only, don't re-save)
-    if (!silent) {
-      addHistory(text);
-      showToast('QR code generated!');
-    }
+    if (!silent) { addHistory(text); showToast('QR code generated!'); }
   }
 
-  // ── Download PNG ──
   dlPngBtn.addEventListener('click', () => {
     const canvas = qrOutput.querySelector('canvas');
     if (!canvas) { showToast('Generate a QR first'); return; }
@@ -608,31 +750,12 @@
     showToast('PNG downloaded!');
   });
 
-  // ── Download SVG ──
   dlSvgBtn.addEventListener('click', () => {
     const canvas = qrOutput.querySelector('canvas');
     if (!canvas) { showToast('Generate a QR first'); return; }
-
     const size = parseInt(sizeSelect.value, 10);
-    const ctx  = canvas.getContext('2d');
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const px = imgData.data;
-    const cw = canvas.width;
-    const ch = canvas.height;
-    const cellW = cw / size;
-    const cellH = ch / size;
-
-    // Build SVG from canvas pixel data
-    // Sample pixel grid at QR module resolution
-    // qrcodejs internal modules ≈ canvas.width / modules
-    // We'll just embed the canvas as a data URI in SVG for perfect fidelity
     const dataUrl = canvas.toDataURL('image/png');
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-  width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <image href="${dataUrl}" width="${size}" height="${size}"/>
-</svg>`;
-
+    const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><image href="${dataUrl}" width="${size}" height="${size}"/></svg>`;
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const a = document.createElement('a');
     a.download = 'qrxl-code.svg';
@@ -642,54 +765,37 @@
     showToast('SVG downloaded!');
   });
 
-  // ── Copy to clipboard ──
   copyBtn.addEventListener('click', async () => {
     const canvas = qrOutput.querySelector('canvas');
     if (!canvas) { showToast('Generate a QR first'); return; }
-    try {
-      canvas.toBlob(async blob => {
-        try {
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-          ]);
-          showToast('Copied to clipboard!');
-        } catch (e) {
-          showToast('Copy failed — try PNG download');
-        }
-      }, 'image/png');
-    } catch(e) {
-      showToast('Copy not supported in this browser');
-    }
+    canvas.toBlob(async blob => {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        showToast('Copied to clipboard!');
+      } catch(e) { showToast('Copy failed — try PNG download'); }
+    }, 'image/png');
   });
 
-  // ── History ──
   function addHistory(text) {
-    // Remove duplicate
-    history = history.filter(h => h.text !== text);
-    history.unshift({ text, time: Date.now() });
-    if (history.length > 10) history = history.slice(0, 10);
-    try { localStorage.setItem('qrxl_history', JSON.stringify(history)); } catch(e) {}
+    qrHistory = qrHistory.filter(h => h.text !== text);
+    qrHistory.unshift({ text, time: Date.now() });
+    if (qrHistory.length > 10) qrHistory = qrHistory.slice(0,10);
+    try { localStorage.setItem('qrxl_history', JSON.stringify(qrHistory)); } catch(e) {}
     renderHistory();
   }
 
   function renderHistory() {
-    if (!history.length) {
-      histCard.classList.remove('visible');
-      return;
-    }
+    if (!qrHistory.length) { histCard.classList.remove('visible'); return; }
     histCard.classList.add('visible');
     histList.innerHTML = '';
-    history.forEach(item => {
+    qrHistory.forEach(item => {
       const el = document.createElement('div');
       el.className = 'history-item';
-      el.innerHTML = `
-        <div class="history-dot"></div>
-        <div class="history-url">${escHtml(item.text)}</div>
-        <div class="history-time">${timeAgo(item.time)}</div>
-      `;
+      el.innerHTML = `<div class="history-dot"></div><div class="history-url">${escHtml(item.text)}</div><div class="history-time">${timeAgo(item.time)}</div>`;
       el.addEventListener('click', () => {
         urlInput.value = item.text;
-        generate();
+        generate(false);
+        switchTab('generate');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
       histList.appendChild(el);
@@ -697,38 +803,247 @@
   }
 
   clearBtn.addEventListener('click', () => {
-    history = [];
+    qrHistory = [];
     try { localStorage.removeItem('qrxl_history'); } catch(e) {}
     renderHistory();
     showToast('History cleared');
   });
 
-  // ── Helpers ──
+  // ════════════════════════════════════════
+  // SCAN FROM IMAGE
+  // ════════════════════════════════════════
+  const imgDropZone   = document.getElementById('img-drop-zone');
+  const imgScanInput  = document.getElementById('img-scan-input');
+  const imgScanResult = document.getElementById('img-scan-result');
+  const imgScanText   = document.getElementById('img-scan-text');
+  const imgOpenBtn    = document.getElementById('img-open-btn');
+  const imgCopyBtn    = document.getElementById('img-copy-btn');
+  const imgMakeBtn    = document.getElementById('img-make-btn');
+
+  let lastImgScanResult = '';
+
+  imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('dragover'); });
+  imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('dragover'));
+  imgDropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    imgDropZone.classList.remove('dragover');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) scanImageFile(f);
+    else showToast('Drop an image file');
+  });
+
+  imgScanInput.addEventListener('change', function() {
+    const f = this.files && this.files[0];
+    if (f) scanImageFile(f);
+  });
+
+  function scanImageFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert'
+        });
+        if (code) {
+          showScanResult(code.data, 'image');
+        } else {
+          showToast('No QR code found in that image');
+          imgScanResult.classList.remove('visible');
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showScanResult(text, source) {
+    const isUrl = /^https?:\/\//i.test(text);
+    if (source === 'image') {
+      lastImgScanResult = text;
+      imgScanText.innerHTML = isUrl
+        ? `<a href="${escHtml(text)}" target="_blank" rel="noopener">${escHtml(text)}</a>`
+        : escHtml(text);
+      imgScanResult.classList.add('visible');
+      imgOpenBtn.style.display = isUrl ? 'inline-flex' : 'none';
+      showToast('QR decoded!');
+    } else {
+      lastCamScanResult = text;
+      camScanText.innerHTML = isUrl
+        ? `<a href="${escHtml(text)}" target="_blank" rel="noopener">${escHtml(text)}</a>`
+        : escHtml(text);
+      camScanResult.classList.add('visible');
+      camOpenBtn.style.display = isUrl ? 'inline-flex' : 'none';
+      showToast('QR decoded!');
+    }
+  }
+
+  imgOpenBtn.addEventListener('click', () => { if (lastImgScanResult) window.open(lastImgScanResult, '_blank'); });
+  imgCopyBtn.addEventListener('click', () => {
+    if (!lastImgScanResult) return;
+    navigator.clipboard.writeText(lastImgScanResult).then(() => showToast('Copied!')).catch(() => showToast('Copy failed'));
+  });
+  imgMakeBtn.addEventListener('click', () => {
+    if (!lastImgScanResult) return;
+    urlInput.value = lastImgScanResult;
+    switchTab('generate');
+    generate(false);
+  });
+
+  // ════════════════════════════════════════
+  // SCAN FROM CAMERA
+  // ════════════════════════════════════════
+  const camStartBtn   = document.getElementById('cam-start-btn');
+  const camStopBtn    = document.getElementById('cam-stop-btn');
+  const camFlipBtn    = document.getElementById('cam-flip-btn');
+  const camWrap       = document.getElementById('camera-wrap');
+  const cameraVideo   = document.getElementById('camera-video');
+  const cameraIdle    = document.getElementById('camera-idle');
+  const cameraOverlay = document.getElementById('camera-overlay');
+  const cameraStatus  = document.getElementById('camera-status');
+  const camScanResult = document.getElementById('cam-scan-result');
+  const camScanText   = document.getElementById('cam-scan-text');
+  const camOpenBtn    = document.getElementById('cam-open-btn');
+  const camCopyBtn    = document.getElementById('cam-copy-btn');
+  const camMakeBtn    = document.getElementById('cam-make-btn');
+  const scanCanvas    = document.getElementById('scan-canvas');
+
+  let cameraStream    = null;
+  let scanLoop        = null;
+  let lastCamScanResult = '';
+  let facingMode      = 'environment'; // rear camera default
+  let lastScanTime    = 0;
+
+  camStartBtn.addEventListener('click', startCamera);
+  camStopBtn.addEventListener('click', stopCamera);
+  camFlipBtn.addEventListener('click', () => {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    if (cameraStream) { stopCamera(); startCamera(); }
+  });
+
+  async function startCamera() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      cameraVideo.srcObject = cameraStream;
+      cameraVideo.style.display = 'block';
+      cameraIdle.style.display  = 'none';
+      cameraOverlay.style.display = 'flex';
+      cameraStatus.style.display  = 'block';
+      camStartBtn.style.display = 'none';
+      camStopBtn.style.display  = 'inline-flex';
+      camFlipBtn.style.display  = 'inline-flex';
+      camScanResult.classList.remove('visible');
+      tickScan();
+    } catch(e) {
+      if (e.name === 'NotAllowedError') showToast('Camera permission denied');
+      else if (e.name === 'NotFoundError') showToast('No camera found');
+      else showToast('Camera error: ' + e.message);
+    }
+  }
+
+  function stopCamera() {
+    if (scanLoop) { cancelAnimationFrame(scanLoop); scanLoop = null; }
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+    cameraVideo.srcObject = null;
+    cameraVideo.style.display   = 'none';
+    cameraIdle.style.display    = 'block';
+    cameraOverlay.style.display = 'none';
+    cameraStatus.style.display  = 'none';
+    camStartBtn.style.display   = 'inline-flex';
+    camStopBtn.style.display    = 'none';
+    camFlipBtn.style.display    = 'none';
+  }
+
+  function tickScan() {
+    if (!cameraStream) return;
+    if (cameraVideo.readyState === cameraVideo.HAVE_ENOUGH_DATA) {
+      const vw = cameraVideo.videoWidth;
+      const vh = cameraVideo.videoHeight;
+      if (vw && vh) {
+        scanCanvas.width  = vw;
+        scanCanvas.height = vh;
+        const ctx = scanCanvas.getContext('2d');
+        ctx.drawImage(cameraVideo, 0, 0, vw, vh);
+        const imageData = ctx.getImageData(0, 0, vw, vh);
+        const code = jsQR(imageData.data, vw, vh, { inversionAttempts: 'dontInvert' });
+        if (code) {
+          const now = Date.now();
+          // Debounce: don't re-trigger same code within 3s
+          if (code.data !== lastCamScanResult || now - lastScanTime > 3000) {
+            lastScanTime = now;
+            showScanResult(code.data, 'camera');
+            cameraStatus.textContent = '✓ Decoded';
+            cameraStatus.style.background = 'rgba(0,170,68,0.85)';
+            setTimeout(() => {
+              cameraStatus.textContent = 'Scanning…';
+              cameraStatus.style.background = 'rgba(0,0,0,0.7)';
+            }, 1500);
+          }
+        }
+      }
+    }
+    scanLoop = requestAnimationFrame(tickScan);
+  }
+
+  camOpenBtn.addEventListener('click', () => { if (lastCamScanResult) window.open(lastCamScanResult, '_blank'); });
+  camCopyBtn.addEventListener('click', () => {
+    if (!lastCamScanResult) return;
+    navigator.clipboard.writeText(lastCamScanResult).then(() => showToast('Copied!')).catch(() => showToast('Copy failed'));
+  });
+  camMakeBtn.addEventListener('click', () => {
+    if (!lastCamScanResult) return;
+    urlInput.value = lastCamScanResult;
+    stopCamera();
+    switchTab('generate');
+    generate(false);
+  });
+
+  // ════════════════════════════════════════
+  // UTILS
+  // ════════════════════════════════════════
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === name);
+    });
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.toggle('active', p.id === 'panel-' + name);
+    });
+  }
+
   function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function timeAgo(ts) {
-    const diff = Date.now() - ts;
-    const m = Math.floor(diff / 60000);
-    if (m < 1)  return 'just now';
+    const d = Date.now() - ts, m = Math.floor(d/60000);
+    if (m < 1) return 'just now';
     if (m < 60) return m + 'm ago';
-    const h = Math.floor(m / 60);
+    const h = Math.floor(m/60);
     if (h < 24) return h + 'h ago';
-    return Math.floor(h / 24) + 'd ago';
+    return Math.floor(h/24) + 'd ago';
   }
 
   let toastTimer;
   function showToast(msg) {
-    toast.textContent = msg;
-    toast.classList.add('show');
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
   }
 
-  // Auto-focus
   urlInput.focus();
-
 })();
 </script>
 </body>
